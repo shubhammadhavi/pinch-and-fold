@@ -1,0 +1,6 @@
+<resources>
+    <style name="Theme.PinchAndFold" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowBackground">@color/mat_dark</item>
+    </style>
+</resources>

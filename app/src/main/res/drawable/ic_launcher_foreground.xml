@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Cardboard ring -->
+    <path
+        android:fillColor="#E3B37D"
+        android:pathData="M54,18 A36,36 0 1,0 54,90 A36,36 0 1,0 54,18 Z" />
+    <path
+        android:fillColor="#C68E53"
+        android:pathData="M54,24 A30,30 0 1,0 54,84 A30,30 0 1,0 54,24 Z" />
+    <!-- Elastic band -->
+    <path
+        android:strokeColor="#FFF4B8"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:pathData="M28,38 L80,70" />
+    <!-- Origami paper wrestler -->
+    <path
+        android:fillColor="#0FB5CC"
+        android:pathData="M43,43 L65,43 L68,62 L40,62 Z" />
+    <path
+        android:fillColor="#2BD4EA"
+        android:pathData="M46,31 L62,31 L64,43 L44,43 Z" />
+    <!-- Googly eyes -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M49,37 m-3.5,0 a3.5,3.5 0 1,0 7,0 a3.5,3.5 0 1,0 -7,0" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M59,37 m-3.5,0 a3.5,3.5 0 1,0 7,0 a3.5,3.5 0 1,0 -7,0" />
+    <path
+        android:fillColor="#111827"
+        android:pathData="M49.8,37 m-1.6,0 a1.6,1.6 0 1,0 3.2,0 a1.6,1.6 0 1,0 -3.2,0" />
+    <path
+        android:fillColor="#111827"
+        android:pathData="M59.8,37 m-1.6,0 a1.6,1.6 0 1,0 3.2,0 a1.6,1.6 0 1,0 -3.2,0" />
+</vector>
