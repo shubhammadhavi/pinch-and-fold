@@ -1,6 +1,8 @@
 # Pinch & Fold
 
-A tactile, two-finger elastic physics wrestling game for Android built in pure Kotlin (`SurfaceView` + `Canvas` + `SoundPool` + `VibrationEffect`) with zero third-party game engine dependencies.
+A tactile, two-finger elastic physics wrestling game for Android and Mobile Web — built in pure Kotlin (`SurfaceView` + `Canvas`) for Android and HTML5 Canvas + Web Audio API for the browser, with zero third-party game engine dependencies.
+
+**[Play Live Web Demo](https://shubhammadhavi.github.io/pinch-and-fold/)** (works on phone touchscreens & desktop)
 
 <p align="center">
   <img src="docs/mockup.jpg" alt="Pinch & Fold Gameplay Concept" width="320" />
