@@ -18,8 +18,18 @@
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
         if (AudioCtx) this.ctx = new AudioCtx();
       }
-      if (this.ctx && this.ctx.state === "suspended") {
-        this.ctx.resume().catch(() => {});
+      if (this.ctx) {
+        if (this.ctx.state === "suspended") {
+          this.ctx.resume().catch(() => {});
+        }
+        // iOS Safari requires playing a silent buffer inside a user gesture
+        try {
+          const buf = this.ctx.createBuffer(1, 1, 22050);
+          const src = this.ctx.createBufferSource();
+          src.buffer = buf;
+          src.connect(this.ctx.destination);
+          src.start(0);
+        } catch (_) {}
       }
     }
 
@@ -229,7 +239,10 @@
     wave: 1,
     scoreP1: 0,
     scoreP2: 0,
-    bestWave: Number(localStorage.getItem("pinchAndFoldBestWave") || "1"),
+    bestWave: (() => {
+      try { return Number(localStorage.getItem("pinchAndFoldBestWave") || "1"); }
+      catch (_) { return 1; }
+    })(),
     hasTouchedInPlay: false,
 
     roundBannerText: "",
@@ -458,7 +471,7 @@
             engine.wave++;
             if (engine.wave > engine.bestWave) {
               engine.bestWave = engine.wave;
-              localStorage.setItem("pinchAndFoldBestWave", String(engine.bestWave));
+              try { localStorage.setItem("pinchAndFoldBestWave", String(engine.bestWave)); } catch (_) {}
             }
             engine.screenState = STATE_PLAYING;
             spawnRound();
@@ -672,11 +685,12 @@
   // ---------------------------------------------------------------------------
   // Pointer / Multi-Touch Input
   // ---------------------------------------------------------------------------
-  function getCanvasCoords(e) {
+  function getCanvasCoords(clientX, clientY) {
     const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return { x: 0, y: 0 };
     return {
-      x: ((e.clientX - rect.left) / rect.width) * engine.width,
-      y: ((e.clientY - rect.top) / rect.height) * engine.height
+      x: ((clientX - rect.left) / rect.width) * engine.width,
+      y: ((clientY - rect.top) / rect.height) * engine.height
     };
   }
 
@@ -770,11 +784,8 @@
     }
   }
 
-  canvas.addEventListener("pointerdown", (e) => {
-    e.preventDefault();
+  function handleInputDown(id, x, y) {
     audio.unlock();
-    try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
-    const { x, y } = getCanvasCoords(e);
 
     if (inRect(engine.btnMute, x, y)) {
       audio.muted = !audio.muted;
@@ -804,30 +815,78 @@
 
     const sling = selectSlingshot(y);
     if (sling.pointerIdA === null) {
-      sling.pointerIdA = e.pointerId;
+      sling.pointerIdA = id;
       sling.ax = x; sling.ay = y;
       sling.singleStartX = x; sling.singleStartY = y;
       sling.lastTickDistance = 0;
     } else if (sling.pointerIdB === null) {
-      sling.pointerIdB = e.pointerId;
+      sling.pointerIdB = id;
       sling.bx = x; sling.by = y;
       sling.lastTickDistance = Math.hypot(sling.bx - sling.ax, sling.by - sling.ay);
     }
-  });
+  }
 
-  canvas.addEventListener("pointermove", (e) => {
+  function handleInputMove(id, x, y) {
     if (engine.screenState !== STATE_PLAYING) return;
-    const { x, y } = getCanvasCoords(e);
-    updateMove(engine.slingshotP1, e.pointerId, x, y);
-    updateMove(engine.slingshotP2, e.pointerId, x, y);
-  });
+    updateMove(engine.slingshotP1, id, x, y);
+    updateMove(engine.slingshotP2, id, x, y);
+  }
 
-  const onPointerEnd = (e) => {
-    releasePointer(engine.slingshotP1, e.pointerId);
-    releasePointer(engine.slingshotP2, e.pointerId);
+  function handleInputUp(id) {
+    releasePointer(engine.slingshotP1, id);
+    releasePointer(engine.slingshotP2, id);
+  }
+
+  // iOS Safari / Mobile Multi-Touch (passive: false prevents pinch-zoom & scroll)
+  canvas.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const t = e.changedTouches[i];
+      const { x, y } = getCanvasCoords(t.clientX, t.clientY);
+      handleInputDown(`t_${t.identifier}`, x, y);
+    }
+  }, { passive: false });
+
+  canvas.addEventListener("touchmove", (e) => {
+    e.preventDefault();
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const t = e.changedTouches[i];
+      const { x, y } = getCanvasCoords(t.clientX, t.clientY);
+      handleInputMove(`t_${t.identifier}`, x, y);
+    }
+  }, { passive: false });
+
+  const onTouchEnd = (e) => {
+    e.preventDefault();
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      handleInputUp(`t_${e.changedTouches[i].identifier}`);
+    }
   };
-  canvas.addEventListener("pointerup", onPointerEnd);
-  canvas.addEventListener("pointercancel", onPointerEnd);
+  canvas.addEventListener("touchend", onTouchEnd, { passive: false });
+  canvas.addEventListener("touchcancel", onTouchEnd, { passive: false });
+
+  // Prevent iOS Safari gesture zoom
+  for (const evt of ["gesturestart", "gesturechange", "gestureend"]) {
+    document.addEventListener(evt, (e) => e.preventDefault(), { passive: false });
+  }
+
+  // Desktop Mouse Support
+  let mouseDown = false;
+  canvas.addEventListener("mousedown", (e) => {
+    mouseDown = true;
+    const { x, y } = getCanvasCoords(e.clientX, e.clientY);
+    handleInputDown("mouse", x, y);
+  });
+  window.addEventListener("mousemove", (e) => {
+    if (!mouseDown) return;
+    const { x, y } = getCanvasCoords(e.clientX, e.clientY);
+    handleInputMove("mouse", x, y);
+  });
+  window.addEventListener("mouseup", () => {
+    if (!mouseDown) return;
+    mouseDown = false;
+    handleInputUp("mouse");
+  });
 
   // ---------------------------------------------------------------------------
   // Canvas Renderer
